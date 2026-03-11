@@ -11,7 +11,7 @@
       <TextBlock Classes="hint" Text="Scaffolded desktop shell for lyrics editing, tap timing, and CDG export." />
     </StackPanel>
 
-    <Grid Grid.Row="1" ColumnDefinitions="2*,*" ColumnSpacing="24" Margin="0,24,0,24">
+    <Grid Grid.Row="1" ColumnDefinitions="2,*" Margin="0,24,0,24">
       <Border Padding="16" Background="#101820" CornerRadius="12">
         <StackPanel Spacing="12">
           <TextBlock FontSize="18" FontWeight="SemiBold" Text="Lyrics" />
@@ -20,7 +20,7 @@
         </StackPanel>
       </Border>
 
-      <Border Grid.Column="1" Padding="16" Background="#F2F0EA" CornerRadius="12">
+      <Border Grid.Column="1" Margin="24,0,0,0" Padding="16" Background="#F2F0EA" CornerRadius="12">
         <StackPanel Spacing="12">
           <TextBlock FontSize="18" FontWeight="SemiBold" Text="Tap Timing" />
           <TextBlock Text="{Binding TimingHint}" TextWrapping="Wrap" />

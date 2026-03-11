@@ -1,18 +1,18 @@
 namespace KJCDGCreator.Core.Cdg;
 
-internal sealed class CdgPacket
+public sealed class CdgPacket
 {
     private const byte CommandMarker = 0x09;
     private const int DataLength = 16;
 
     private readonly byte[] _data = new byte[DataLength];
 
-    public CdgPacket(CdgCommand command)
+    internal CdgPacket(CdgCommand command)
     {
         Command = command;
     }
 
-    public CdgCommand Command { get; }
+    internal CdgCommand Command { get; }
 
     public Span<byte> Data => _data;
 

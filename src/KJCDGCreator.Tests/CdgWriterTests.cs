@@ -21,6 +21,38 @@ public sealed class CdgWriterTests : IDisposable
         Assert.Equal(0, fileLength % 24);
     }
 
+    [Fact]
+    public void RenderTileChanges_EmitsOnePacketPerChangedTile()
+    {
+        var previous = new CdgScreenBuffer(CdgScreenBuffer.CreateBlankTile(backgroundColor: 0));
+        var current = previous.Clone();
+        var tile = new CdgTile(
+            backgroundColor: 0,
+            foregroundColor: 15,
+            bitmap: new byte[]
+            {
+                0b110000,
+                0b110000,
+                0b110000,
+                0b110000,
+                0b110000,
+                0b110000,
+                0b110000,
+                0b110000,
+                0b110000,
+                0b110000,
+                0b000000,
+                0b000000
+            });
+
+        current.SetTile(2, 3, tile);
+
+        var packets = CdgScreenBufferRenderer.RenderTileChanges(previous, current);
+
+        Assert.Single(packets);
+        Assert.Equal(24, packets[0].ToBytes().Length);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_outputDirectory))

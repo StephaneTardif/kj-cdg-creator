@@ -123,7 +123,7 @@ public static class CdgWriter
             Directory.CreateDirectory(directory);
         }
 
-        var screen = new CdgTileScreenBuffer();
+        var screen = new CdgScreenBuffer(CdgScreenBuffer.CreateBlankTile(BackgroundColor));
         var message = "Hello CDG";
         const int row = 4;
         const int startColumn = 10;
@@ -135,7 +135,7 @@ public static class CdgWriter
         }
 
         using var stream = File.Create(path);
-        foreach (var packet in screen.RenderPackets(BackgroundColor))
+        foreach (var packet in CdgScreenBufferRenderer.RenderFullScreen(screen, BackgroundColor))
         {
             var bytes = packet.ToBytes();
             stream.Write(bytes, 0, bytes.Length);

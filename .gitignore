@@ -30,3 +30,6 @@ Thumbs.db
 
 # Local tooling state
 .dotnet-home/
+
+# Generated example artifacts
+examples/generated/

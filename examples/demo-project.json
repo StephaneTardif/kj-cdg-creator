@@ -1,0 +1,13 @@
+{
+  "title": "Because I'm Happy",
+  "artist": "Example Artist",
+  "audioFile": "happy-demo.mp3",
+  "lyrics": [
+    "Be|cause I'm hap|py"
+  ],
+  "palette": {
+    "background": 0,
+    "lyrics": 15,
+    "highlight": 12
+  }
+}

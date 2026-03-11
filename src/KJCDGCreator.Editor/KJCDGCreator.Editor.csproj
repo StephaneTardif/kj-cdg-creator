@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>KJCDGCreator.Editor</RootNamespace>
+    <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="App.axaml" />
+    <AvaloniaResource Include="Views\**\*.axaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.1.3" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.1.3" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.1.3" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.1.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\KJCDGCreator.Audio\KJCDGCreator.Audio.csproj" />
+    <ProjectReference Include="..\KJCDGCreator.Core\KJCDGCreator.Core.csproj" />
+  </ItemGroup>
+
+</Project>

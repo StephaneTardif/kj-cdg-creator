@@ -1,0 +1,32 @@
+# Build output
+bin/
+obj/
+artifacts/
+
+# User-specific files
+*.user
+*.rsuser
+*.suo
+*.userprefs
+
+# IDE settings
+.vs/
+.vscode/
+.idea/
+
+# Test and coverage output
+TestResults/
+coverage/
+coverage.*
+
+# NuGet
+packages/
+*.nupkg
+*.snupkg
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local tooling state
+.dotnet-home/

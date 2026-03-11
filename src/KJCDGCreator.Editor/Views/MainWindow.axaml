@@ -1,0 +1,36 @@
+<Window
+    x:Class="KJCDGCreator.Editor.Views.MainWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="KJ CDG Creator"
+    Width="1080"
+    Height="720">
+  <Grid RowDefinitions="Auto,*,Auto" Margin="24">
+    <StackPanel Spacing="8">
+      <TextBlock FontSize="28" FontWeight="Bold" Text="KJ CDG Creator" />
+      <TextBlock Classes="hint" Text="Scaffolded desktop shell for lyrics editing, tap timing, and CDG export." />
+    </StackPanel>
+
+    <Grid Grid.Row="1" ColumnDefinitions="2*,*" ColumnSpacing="24" Margin="0,24,0,24">
+      <Border Padding="16" Background="#101820" CornerRadius="12">
+        <StackPanel Spacing="12">
+          <TextBlock FontSize="18" FontWeight="SemiBold" Text="Lyrics" />
+          <TextBox AcceptsReturn="True" Height="320" Text="{Binding LyricsDraft}" Watermark="Be|cause I'm hap|py" />
+          <TextBlock Text="{Binding LyricsHint}" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Column="1" Padding="16" Background="#F2F0EA" CornerRadius="12">
+        <StackPanel Spacing="12">
+          <TextBlock FontSize="18" FontWeight="SemiBold" Text="Tap Timing" />
+          <TextBlock Text="{Binding TimingHint}" TextWrapping="Wrap" />
+          <Button HorizontalAlignment="Left" Content="Start Session" />
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <Border Grid.Row="2" Padding="12" Background="#E5E1D8" CornerRadius="10">
+      <TextBlock Text="{Binding StatusMessage}" />
+    </Border>
+  </Grid>
+</Window>

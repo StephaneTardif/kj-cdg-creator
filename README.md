@@ -42,6 +42,7 @@ Implemented so far:
 6. Bitmap font rendering for lyric-safe ASCII characters, written into the CDG tile screen buffer.
 7. CDG packet inspection and ASCII preview tooling for verifying generated files without external karaoke software.
 8. Basic automated tests for CDG file creation, packet sizing, tile-buffer updates, changed-tile rendering, and packet inspection.
+9. ✔ Lyrics parser (syllable-level structure)
 
 Still intentionally deferred:
 

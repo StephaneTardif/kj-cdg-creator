@@ -7,7 +7,7 @@ namespace KJCDGCreator.Core.Rendering;
 public interface ICdgRenderer
 {
     IReadOnlyList<CdgRenderFrame> Render(
-        IReadOnlyList<LyricLine> lyrics,
+        IReadOnlyList<LyricsLine> lyrics,
         TimingSession timing,
         CdgPalette palette);
 }

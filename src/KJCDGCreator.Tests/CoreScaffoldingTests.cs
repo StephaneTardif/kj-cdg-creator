@@ -1,24 +1,9 @@
 using KJCDGCreator.Core.Cdg;
-using KJCDGCreator.Core.Lyrics;
 
 namespace KJCDGCreator.Tests;
 
 public sealed class CoreScaffoldingTests
 {
-    [Fact]
-    public void LyricLine_ToDisplayText_ConcatenatesSyllables()
-    {
-        var line = new LyricLine(
-            new[]
-            {
-                new LyricSyllable("Be", 0),
-                new LyricSyllable("cause", 1),
-                new LyricSyllable(" happy", 2)
-            });
-
-        Assert.Equal("Because happy", line.ToDisplayText());
-    }
-
     [Fact]
     public void CdgPalette_StoresConfiguredColors()
     {

@@ -22,6 +22,22 @@ public sealed class CdgWriterTests : IDisposable
     }
 
     [Fact]
+    public void WriteText_CreatesDifferentOutputForDifferentText()
+    {
+        Directory.CreateDirectory(_outputDirectory);
+        var firstPath = Path.Combine(_outputDirectory, "first.cdg");
+        var secondPath = Path.Combine(_outputDirectory, "second.cdg");
+
+        CdgWriter.WriteText(firstPath, "Hello");
+        CdgWriter.WriteText(secondPath, "World");
+
+        var firstBytes = File.ReadAllBytes(firstPath);
+        var secondBytes = File.ReadAllBytes(secondPath);
+
+        Assert.NotEqual(firstBytes, secondBytes);
+    }
+
+    [Fact]
     public void RenderTileChanges_EmitsOnePacketPerChangedTile()
     {
         var previous = new CdgScreenBuffer(CdgScreenBuffer.CreateBlankTile(backgroundColor: 0));
@@ -51,6 +67,40 @@ public sealed class CdgWriterTests : IDisposable
 
         Assert.Single(packets);
         Assert.Equal(24, packets[0].ToBytes().Length);
+    }
+
+    [Fact]
+    public void RenderText_UpdatesScreenBufferTiles()
+    {
+        var screen = new CdgScreenBuffer(CdgScreenBuffer.CreateBlankTile(backgroundColor: 0));
+        var renderer = new BitmapFontRenderer(screen, backgroundColor: 0);
+
+        renderer.RenderText("Ab", tileX: 5, tileY: 6, color: 9);
+
+        var firstTile = screen.GetTile(6, 5);
+        var secondTile = screen.GetTile(6, 6);
+
+        Assert.Equal((byte)9, firstTile.ForegroundColor);
+        Assert.Equal((byte)9, secondTile.ForegroundColor);
+        Assert.NotEqual(screen.DefaultTile, firstTile);
+        Assert.NotEqual(screen.DefaultTile, secondTile);
+        Assert.Contains(firstTile.Bitmap, row => row != 0);
+        Assert.Contains(secondTile.Bitmap, row => row != 0);
+    }
+
+    [Fact]
+    public void RenderText_GeneratesTileChangesForRenderedCharacters()
+    {
+        var previous = new CdgScreenBuffer(CdgScreenBuffer.CreateBlankTile(backgroundColor: 0));
+        var current = previous.Clone();
+        var renderer = new BitmapFontRenderer(current, backgroundColor: 0);
+
+        renderer.RenderText("A-", tileX: 1, tileY: 1, color: 12);
+
+        var packets = CdgScreenBufferRenderer.RenderTileChanges(previous, current);
+
+        Assert.Equal(2, packets.Count);
+        Assert.All(packets, packet => Assert.Equal(24, packet.ToBytes().Length));
     }
 
     public void Dispose()

@@ -39,7 +39,8 @@ Implemented so far:
 3. Minimal CDG packet writer that generates a valid `hello.cdg` file.
 4. Tile-based CDG screen buffer covering the full 50x18 display grid with 6x12 pixel tiles.
 5. Screen-buffer renderer that converts tile changes into `Tile Block Normal` packets and supports memory preset clears.
-6. Basic automated tests for CDG file creation, packet sizing, and changed-tile rendering.
+6. Bitmap font rendering for lyric-safe ASCII characters, written into the CDG tile screen buffer.
+7. Basic automated tests for CDG file creation, packet sizing, tile-buffer updates, and changed-tile rendering.
 
 Still intentionally deferred:
 

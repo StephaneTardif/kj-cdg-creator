@@ -5,11 +5,13 @@ public sealed class BitmapFont
     public static BitmapFont Default { get; } = new(CreateDefaultGlyphs());
 
     private readonly IReadOnlyDictionary<char, byte[]> _glyphs;
+    private readonly IReadOnlyDictionary<string, char> _glyphLookup;
 
     public BitmapFont(IReadOnlyDictionary<char, byte[]> glyphs)
     {
         ArgumentNullException.ThrowIfNull(glyphs);
         _glyphs = glyphs;
+        _glyphLookup = glyphs.ToDictionary(pair => CreateGlyphKey(pair.Value), pair => pair.Key);
     }
 
     public IReadOnlyList<byte> GetGlyph(char value)
@@ -29,6 +31,19 @@ public sealed class BitmapFont
         }
 
         throw new InvalidOperationException($"No bitmap font glyph is defined for '{value}'.");
+    }
+
+    public bool TryGetCharacter(IReadOnlyList<byte> glyph, out char value)
+    {
+        ArgumentNullException.ThrowIfNull(glyph);
+
+        if (_glyphLookup.TryGetValue(CreateGlyphKey(glyph), out value))
+        {
+            return true;
+        }
+
+        value = default;
+        return false;
     }
 
     private static IReadOnlyDictionary<char, byte[]> CreateDefaultGlyphs() =>
@@ -114,4 +129,6 @@ public sealed class BitmapFont
 
         return (byte)(value << 1);
     }
+
+    private static string CreateGlyphKey(IReadOnlyList<byte> glyph) => string.Join(",", glyph);
 }

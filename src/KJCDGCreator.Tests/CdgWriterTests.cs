@@ -38,6 +38,23 @@ public sealed class CdgWriterTests : IDisposable
     }
 
     [Fact]
+    public void Inspector_ReadsGeneratedPacketsAndBuildsPreview()
+    {
+        Directory.CreateDirectory(_outputDirectory);
+        var outputPath = Path.Combine(_outputDirectory, "inspect.cdg");
+
+        CdgWriter.WriteText(outputPath, "Hello");
+
+        var packets = CdgInspector.ReadPackets(outputPath);
+        var preview = CdgInspector.RenderAsciiPreview(outputPath);
+
+        Assert.Equal(6, packets.Count);
+        Assert.Equal(CdgPacketType.MemoryPreset, packets[0].Type);
+        Assert.Equal(CdgPacketType.TileBlockNormal, packets[1].Type);
+        Assert.Contains("HELLO", preview);
+    }
+
+    [Fact]
     public void RenderTileChanges_EmitsOnePacketPerChangedTile()
     {
         var previous = new CdgScreenBuffer(CdgScreenBuffer.CreateBlankTile(backgroundColor: 0));

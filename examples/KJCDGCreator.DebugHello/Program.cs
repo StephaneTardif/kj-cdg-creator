@@ -1,8 +1,15 @@
 using KJCDGCreator.Core.Cdg;
 using KJCDGCreator.Core.Lyrics;
+using KJCDGCreator.Core.Rendering;
 using KJCDGCreator.Core.Timing;
 using System.Security.Cryptography;
 using System.Text;
+
+if (args.Length >= 1 && string.Equals(args[0], "highlight-demo", StringComparison.OrdinalIgnoreCase))
+{
+    RunHighlightDemo();
+    return;
+}
 
 if (args.Length >= 1 && string.Equals(args[0], "tap-demo", StringComparison.OrdinalIgnoreCase))
 {
@@ -99,4 +106,53 @@ static void PrintSessionState(string label, TapTimingSession session, TimingDocu
     Console.WriteLine($"  Can undo:           {session.CanUndo}");
     Console.WriteLine($"  Timed / untimed:    {timing.TimedCount} / {timing.UntimedCount}");
     Console.WriteLine();
+}
+
+static void RunHighlightDemo()
+{
+    const string sampleLyrics = """
+        Be|cause I'm hap|py
+        Clap a|long
+        """;
+
+    var lyrics = LyricsParser.Parse(sampleLyrics);
+    var timing = TimingDocumentBuilder.FromLyrics(lyrics);
+    timing.AssignTimestamp(0, TimeSpan.FromSeconds(0.50));
+    timing.AssignTimestamp(1, TimeSpan.FromSeconds(1.15));
+    timing.AssignTimestamp(2, TimeSpan.FromSeconds(2.05));
+    timing.AssignTimestamp(3, TimeSpan.FromSeconds(2.80));
+    timing.AssignTimestamp(4, TimeSpan.FromSeconds(3.50));
+
+    var playbackTime = TimeSpan.FromSeconds(2.80);
+    var pageState = HighlightProgressionEngine.GetPageState(lyrics, 0, timing, playbackTime);
+    var screen = new CdgScreenBuffer(CdgScreenBuffer.CreateBlankTile(backgroundColor: 0));
+    var options = new HighlightedLyricsRenderOptions(
+        StartRow: 5,
+        StartColumn: 4,
+        LineSpacing: 2,
+        BackgroundColor: 0,
+        BaseTextColor: 15,
+        HighlightTextColor: 12,
+        ClearScreenBeforeRender: true);
+
+    HighlightedLyricsRenderer.RenderPage(pageState, screen, options);
+
+    var repositoryRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+    var outputDirectory = Path.Combine(repositoryRoot, "examples", "generated");
+    Directory.CreateDirectory(outputDirectory);
+    var outputPath = Path.Combine(outputDirectory, "highlight-demo.cdg");
+
+    using (var stream = File.Create(outputPath))
+    {
+        foreach (var packet in CdgScreenBufferRenderer.RenderFullScreen(screen, options.BackgroundColor))
+        {
+            var bytes = packet.ToBytes();
+            stream.Write(bytes, 0, bytes.Length);
+        }
+    }
+
+    Console.WriteLine($"Generated highlighted lyrics CDG: {outputPath}");
+    Console.WriteLine($"Playback time: {playbackTime}");
+    Console.WriteLine("ASCII preview:");
+    Console.WriteLine(CdgInspector.RenderAsciiPreview(outputPath));
 }

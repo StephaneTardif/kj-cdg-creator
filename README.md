@@ -46,6 +46,7 @@ Implemented so far:
 10. ✔ Tap timing domain model
 11. ✔ Tap timing capture session logic
 12. ✔ Highlight progression engine
+13. ✔ Highlighted lyric line rendering
 
 Still intentionally deferred:
 

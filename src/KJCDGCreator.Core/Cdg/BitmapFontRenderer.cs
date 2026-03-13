@@ -17,11 +17,22 @@ public sealed class BitmapFontRenderer
     {
         ArgumentNullException.ThrowIfNull(text);
 
+        if (tileY < 0 || tileY >= CdgScreenBuffer.Rows)
+        {
+            return;
+        }
+
         for (var index = 0; index < text.Length; index++)
         {
+            var column = tileX + index;
+            if (column < 0 || column >= CdgScreenBuffer.Columns)
+            {
+                continue;
+            }
+
             var glyph = _font.GetGlyph(text[index]);
             var tile = new CdgTile(_backgroundColor, color, glyph);
-            _screenBuffer.SetTile(tileY, tileX + index, tile);
+            _screenBuffer.SetTile(tileY, column, tile);
         }
     }
 }

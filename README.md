@@ -43,6 +43,7 @@ Implemented so far:
 7. CDG packet inspection and ASCII preview tooling for verifying generated files without external karaoke software.
 8. Basic automated tests for CDG file creation, packet sizing, tile-buffer updates, changed-tile rendering, and packet inspection.
 9. ✔ Lyrics parser (syllable-level structure)
+10. ✔ Tap timing domain model
 
 Still intentionally deferred:
 

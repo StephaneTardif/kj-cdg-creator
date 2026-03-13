@@ -45,6 +45,7 @@ Implemented so far:
 9. ✔ Lyrics parser (syllable-level structure)
 10. ✔ Tap timing domain model
 11. ✔ Tap timing capture session logic
+12. ✔ Highlight progression engine
 
 Still intentionally deferred:
 

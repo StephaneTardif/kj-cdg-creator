@@ -11,6 +11,12 @@ if (args.Length >= 1 && string.Equals(args[0], "highlight-demo", StringCompariso
     return;
 }
 
+if (args.Length >= 1 && string.Equals(args[0], "export-demo", StringComparison.OrdinalIgnoreCase))
+{
+    RunExportDemo();
+    return;
+}
+
 if (args.Length >= 1 && string.Equals(args[0], "frame-demo", StringComparison.OrdinalIgnoreCase))
 {
     RunFrameDemo();
@@ -235,4 +241,60 @@ static void RunFrameDemo()
         Console.WriteLine(CdgInspector.RenderAsciiPreview(outputPath));
         Console.WriteLine();
     }
+}
+
+static void RunExportDemo()
+{
+    const string sampleLyrics = """
+        Be|cause I'm hap|py
+        Clap a|long
+
+        Sing|ing loud to|gether
+        All night| long
+        """;
+
+    var lyrics = LyricsParser.Parse(sampleLyrics);
+    var timing = TimingDocumentBuilder.FromLyrics(lyrics);
+    var timestamps = new[]
+    {
+        0.50, 1.10, 2.00, 2.80, 4.20, 5.10, 6.00
+    };
+
+    for (var index = 0; index < timestamps.Length; index++)
+    {
+        timing.AssignTimestamp(index, TimeSpan.FromSeconds(timestamps[index]));
+    }
+
+    var repositoryRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+    var outputDirectory = Path.Combine(repositoryRoot, "examples", "generated");
+    Directory.CreateDirectory(outputDirectory);
+    var outputPath = Path.Combine(outputDirectory, "export-demo.cdg");
+
+    var result = CdgTimelineExporter.Export(
+        lyrics,
+        timing,
+        outputPath,
+        new CdgTimelineExportOptions(
+            FrameStep: TimeSpan.FromSeconds(1),
+            FrameRenderOptions: new KaraokeFrameRenderOptions(
+                new PageLayoutOptions(
+                    StartRow: 4,
+                    StartColumn: 4,
+                    LineSpacing: 2,
+                    CenterHorizontally: true,
+                    CenterVertically: true),
+                new HighlightedLyricsRenderOptions(
+                    StartRow: 4,
+                    StartColumn: 4,
+                    LineSpacing: 2,
+                    BackgroundColor: 0,
+                    BaseTextColor: 15,
+                    HighlightTextColor: 12,
+                    ClearScreenBeforeRender: true)),
+            EndPadding: TimeSpan.FromSeconds(1),
+            IncludeInitialClearFrame: true));
+
+    Console.WriteLine($"Exported CDG timeline: {result.OutputPath}");
+    Console.WriteLine($"Frames rendered:       {result.FrameCount}");
+    Console.WriteLine($"Packets written:       {result.PacketCount}");
 }

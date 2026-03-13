@@ -47,6 +47,7 @@ Implemented so far:
 11. ✔ Tap timing capture session logic
 12. ✔ Highlight progression engine
 13. ✔ Highlighted lyric line rendering
+14. ✔ Active page selection and page layout
 
 Still intentionally deferred:
 

@@ -44,6 +44,7 @@ Implemented so far:
 8. Basic automated tests for CDG file creation, packet sizing, tile-buffer updates, changed-tile rendering, and packet inspection.
 9. ✔ Lyrics parser (syllable-level structure)
 10. ✔ Tap timing domain model
+11. ✔ Tap timing capture session logic
 
 Still intentionally deferred:
 

@@ -1,6 +1,14 @@
 using KJCDGCreator.Core.Cdg;
+using KJCDGCreator.Core.Lyrics;
+using KJCDGCreator.Core.Timing;
 using System.Security.Cryptography;
 using System.Text;
+
+if (args.Length >= 1 && string.Equals(args[0], "tap-demo", StringComparison.OrdinalIgnoreCase))
+{
+    RunTapDemo();
+    return;
+}
 
 if (args.Length >= 2 && string.Equals(args[0], "inspect", StringComparison.OrdinalIgnoreCase))
 {
@@ -41,4 +49,54 @@ static void InspectCdg(string path, bool preview)
         Console.WriteLine("ASCII preview:");
         Console.WriteLine(CdgInspector.RenderAsciiPreview(path));
     }
+}
+
+static void RunTapDemo()
+{
+    const string sampleLyrics = """
+        Be|cause I'm hap|py
+        Clap a|long
+        """;
+
+    var lyrics = LyricsParser.Parse(sampleLyrics);
+    var timing = TimingDocumentBuilder.FromLyrics(lyrics);
+    var session = new TapTimingSession(timing);
+
+    Console.WriteLine("Tap demo");
+    Console.WriteLine("Lyrics:");
+    Console.WriteLine(sampleLyrics);
+    Console.WriteLine();
+
+    PrintSessionState("Startup", session, timing);
+
+    session.RecordTimestamp(TimeSpan.FromSeconds(0.50));
+    PrintSessionState("After recording 00:00:00.500", session, timing);
+
+    session.RecordTimestamp(TimeSpan.FromSeconds(1.15));
+    PrintSessionState("After recording 00:00:01.150", session, timing);
+
+    session.RecordTimestamp(TimeSpan.FromSeconds(2.05));
+    PrintSessionState("After recording 00:00:02.050", session, timing);
+
+    session.Undo();
+    PrintSessionState("After undo", session, timing);
+
+    session.RecordTimestamp(TimeSpan.FromSeconds(2.30));
+    PrintSessionState("After recording 00:00:02.300", session, timing);
+
+    session.Reset();
+    PrintSessionState("After reset", session, timing);
+}
+
+static void PrintSessionState(string label, TapTimingSession session, TimingDocument timing)
+{
+    var currentUnit = session.GetCurrentUnit();
+
+    Console.WriteLine(label);
+    Console.WriteLine($"  Current unit index: {session.CurrentUnitIndex}");
+    Console.WriteLine($"  Current unit text:  {currentUnit?.Text ?? "<complete>"}");
+    Console.WriteLine($"  Is complete:        {session.IsComplete}");
+    Console.WriteLine($"  Can undo:           {session.CanUndo}");
+    Console.WriteLine($"  Timed / untimed:    {timing.TimedCount} / {timing.UntimedCount}");
+    Console.WriteLine();
 }

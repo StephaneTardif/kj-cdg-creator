@@ -11,6 +11,12 @@ if (args.Length >= 1 && string.Equals(args[0], "highlight-demo", StringCompariso
     return;
 }
 
+if (args.Length >= 1 && string.Equals(args[0], "frame-demo", StringComparison.OrdinalIgnoreCase))
+{
+    RunFrameDemo();
+    return;
+}
+
 if (args.Length >= 1 && string.Equals(args[0], "tap-demo", StringComparison.OrdinalIgnoreCase))
 {
     RunTapDemo();
@@ -155,4 +161,78 @@ static void RunHighlightDemo()
     Console.WriteLine($"Playback time: {playbackTime}");
     Console.WriteLine("ASCII preview:");
     Console.WriteLine(CdgInspector.RenderAsciiPreview(outputPath));
+}
+
+static void RunFrameDemo()
+{
+    const string sampleLyrics = """
+        Be|cause I'm hap|py
+        Clap a|long
+
+        Sing|ing loud to|gether
+        All night| long
+        """;
+
+    var lyrics = LyricsParser.Parse(sampleLyrics);
+    var timing = TimingDocumentBuilder.FromLyrics(lyrics);
+    var timestamps = new[]
+    {
+        0.50, 1.10, 2.00, 2.80, 4.20, 5.10, 6.00
+    };
+
+    for (var index = 0; index < timestamps.Length; index++)
+    {
+        timing.AssignTimestamp(index, TimeSpan.FromSeconds(timestamps[index]));
+    }
+
+    var renderOptions = new KaraokeFrameRenderOptions(
+        new PageLayoutOptions(
+            StartRow: 4,
+            StartColumn: 4,
+            LineSpacing: 2,
+            CenterHorizontally: true,
+            CenterVertically: true),
+        new HighlightedLyricsRenderOptions(
+            StartRow: 4,
+            StartColumn: 4,
+            LineSpacing: 2,
+            BackgroundColor: 0,
+            BaseTextColor: 15,
+            HighlightTextColor: 12,
+            ClearScreenBeforeRender: true));
+
+    var playbackTimes = new[]
+    {
+        TimeSpan.FromSeconds(0.25),
+        TimeSpan.FromSeconds(2.80),
+        TimeSpan.FromSeconds(5.20)
+    };
+
+    var repositoryRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+    var outputDirectory = Path.Combine(repositoryRoot, "examples", "generated");
+    Directory.CreateDirectory(outputDirectory);
+
+    for (var index = 0; index < playbackTimes.Length; index++)
+    {
+        var screen = new CdgScreenBuffer(CdgScreenBuffer.CreateBlankTile(backgroundColor: 0));
+        var playbackTime = playbackTimes[index];
+        var result = KaraokeFrameRenderer.RenderFrame(lyrics, timing, playbackTime, screen, renderOptions);
+        var outputPath = Path.Combine(outputDirectory, $"frame-demo-{index + 1}.cdg");
+
+        using (var stream = File.Create(outputPath))
+        {
+            foreach (var packet in CdgScreenBufferRenderer.RenderFullScreen(screen, renderOptions.HighlightOptions.BackgroundColor))
+            {
+                var bytes = packet.ToBytes();
+                stream.Write(bytes, 0, bytes.Length);
+            }
+        }
+
+        Console.WriteLine($"Frame {index + 1}: {outputPath}");
+        Console.WriteLine($"  Playback time: {playbackTime}");
+        Console.WriteLine($"  Page index:    {result.PageIndex}");
+        Console.WriteLine("  ASCII preview:");
+        Console.WriteLine(CdgInspector.RenderAsciiPreview(outputPath));
+        Console.WriteLine();
+    }
 }

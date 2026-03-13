@@ -48,6 +48,7 @@ Implemented so far:
 12. ✔ Highlight progression engine
 13. ✔ Highlighted lyric line rendering
 14. ✔ Active page selection and page layout
+15. ✔ End-to-end karaoke frame rendering
 
 Still intentionally deferred:
 

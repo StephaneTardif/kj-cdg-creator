@@ -52,6 +52,7 @@ Implemented so far:
 16. ✔ CDG timeline export
 17. ✔ MP3 + CDG packaging
 18. ✔ Audio time source abstraction
+19. ✔ Live tap timing demo
 
 Still intentionally deferred:
 

@@ -5,7 +5,59 @@ namespace KJCDGCreator.Tests;
 public sealed class LyricsParserTests
 {
     [Fact]
-    public void Parse_SplitsSimpleSyllablesInReadingOrder()
+    public void Parse_SplitsPlainWordBoundariesWithoutPipes()
+    {
+        var document = LyricsParser.Parse("Hello there world");
+        var line = Assert.Single(Assert.Single(document.Pages).Lines);
+
+        Assert.Equal("Hello there world", line.DisplayText);
+        Assert.Collection(
+            line.Units,
+            unit =>
+            {
+                Assert.Equal("Hello", unit.Text);
+                Assert.Equal(0, unit.DisplayStartIndex);
+                Assert.Equal(5, unit.DisplayLength);
+            },
+            unit =>
+            {
+                Assert.Equal("there", unit.Text);
+                Assert.Equal(6, unit.DisplayStartIndex);
+                Assert.Equal(5, unit.DisplayLength);
+            },
+            unit =>
+            {
+                Assert.Equal("world", unit.Text);
+                Assert.Equal(12, unit.DisplayStartIndex);
+                Assert.Equal(5, unit.DisplayLength);
+            });
+    }
+
+    [Fact]
+    public void Parse_SplitsSyllablesInsideWordWithPipe()
+    {
+        var document = LyricsParser.Parse("hap|py");
+        var line = Assert.Single(Assert.Single(document.Pages).Lines);
+
+        Assert.Equal("happy", line.DisplayText);
+        Assert.Collection(
+            line.Units,
+            unit =>
+            {
+                Assert.Equal("hap", unit.Text);
+                Assert.Equal(0, unit.DisplayStartIndex);
+                Assert.Equal(3, unit.DisplayLength);
+            },
+            unit =>
+            {
+                Assert.Equal("py", unit.Text);
+                Assert.Equal(3, unit.DisplayStartIndex);
+                Assert.Equal(2, unit.DisplayLength);
+            });
+    }
+
+    [Fact]
+    public void Parse_MixesWordAndSyllableSplittingInReadingOrder()
     {
         var document = LyricsParser.Parse("Be|cause I'm hap|py");
         var line = Assert.Single(Assert.Single(document.Pages).Lines);
@@ -22,9 +74,21 @@ public sealed class LyricsParserTests
             },
             unit =>
             {
-                Assert.Equal("cause I'm hap", unit.Text);
+                Assert.Equal("cause", unit.Text);
                 Assert.Equal(2, unit.DisplayStartIndex);
-                Assert.Equal(13, unit.DisplayLength);
+                Assert.Equal(5, unit.DisplayLength);
+            },
+            unit =>
+            {
+                Assert.Equal("I'm", unit.Text);
+                Assert.Equal(8, unit.DisplayStartIndex);
+                Assert.Equal(3, unit.DisplayLength);
+            },
+            unit =>
+            {
+                Assert.Equal("hap", unit.Text);
+                Assert.Equal(12, unit.DisplayStartIndex);
+                Assert.Equal(3, unit.DisplayLength);
             },
             unit =>
             {
@@ -37,14 +101,15 @@ public sealed class LyricsParserTests
     [Fact]
     public void Parse_KeepsPunctuationAttachedToUnits()
     {
-        var document = LyricsParser.Parse("hap|py,");
+        var document = LyricsParser.Parse("hap|py, now.");
         var line = Assert.Single(Assert.Single(document.Pages).Lines);
 
-        Assert.Equal("happy,", line.DisplayText);
+        Assert.Equal("happy, now.", line.DisplayText);
         Assert.Collection(
             line.Units,
             unit => Assert.Equal("hap", unit.Text),
-            unit => Assert.Equal("py,", unit.Text));
+            unit => Assert.Equal("py,", unit.Text),
+            unit => Assert.Equal("now.", unit.Text));
     }
 
     [Fact]

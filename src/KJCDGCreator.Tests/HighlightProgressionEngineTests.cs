@@ -47,8 +47,8 @@ public sealed class HighlightProgressionEngineTests
 
         Assert.Collection(
             line.CompletedRanges,
-            range => Assert.Equal(new HighlightRange(0, 15), range));
-        Assert.Equal(new HighlightRange(15, 2), line.ActiveRange);
+            range => Assert.Equal(new HighlightRange(0, 7), range));
+        Assert.Equal(new HighlightRange(8, 3), line.ActiveRange);
     }
 
     [Fact]
@@ -66,9 +66,11 @@ public sealed class HighlightProgressionEngineTests
         Assert.Equal(2, state.Lines.Count);
         Assert.Collection(
             state.Lines[0].CompletedRanges,
-            range => Assert.Equal(new HighlightRange(0, 17), range));
-        Assert.Null(state.Lines[0].ActiveRange);
-        Assert.Equal(new HighlightRange(0, 6), state.Lines[1].ActiveRange);
+            range => Assert.Equal(new HighlightRange(0, 7), range),
+            range => Assert.Equal(new HighlightRange(8, 3), range));
+        Assert.Equal(new HighlightRange(12, 3), state.Lines[0].ActiveRange);
+        Assert.Empty(state.Lines[1].CompletedRanges);
+        Assert.Null(state.Lines[1].ActiveRange);
     }
 
     [Fact]
@@ -84,7 +86,7 @@ public sealed class HighlightProgressionEngineTests
         Assert.Collection(
             line.CompletedRanges,
             range => Assert.Equal(new HighlightRange(0, 2), range));
-        Assert.Equal(new HighlightRange(15, 2), line.ActiveRange);
+        Assert.Equal(new HighlightRange(8, 3), line.ActiveRange);
     }
 
     [Fact]
@@ -101,7 +103,7 @@ public sealed class HighlightProgressionEngineTests
         Assert.Collection(
             line.CompletedRanges,
             range => Assert.Equal(new HighlightRange(0, 2), range));
-        Assert.Equal(new HighlightRange(2, 6), line.ActiveRange);
+        Assert.Equal(new HighlightRange(3, 5), line.ActiveRange);
     }
 
     private static (LyricsDocument Lyrics, TimingDocument Timing) CreateLyricsAndTiming(string text)

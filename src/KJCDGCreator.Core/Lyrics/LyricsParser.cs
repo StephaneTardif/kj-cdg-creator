@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace KJCDGCreator.Core.Lyrics;
 
 public static class LyricsParser
@@ -42,19 +44,57 @@ public static class LyricsParser
 
     private static LyricsLine ParseLine(string line)
     {
-        var segments = line.Split('|');
-        var units = new List<LyricsUnit>(segments.Length);
+        var units = new List<LyricsUnit>();
+        var displayText = line.Replace("|", string.Empty);
+
+        var tokenStartIndex = -1;
+        var token = new StringBuilder();
         var displayIndex = 0;
 
-        foreach (var segment in segments)
+        foreach (var character in line)
         {
-            units.Add(new LyricsUnit(segment, displayIndex, segment.Length));
-            displayIndex += segment.Length;
+            if (character == '|')
+            {
+                FlushToken(units, token, ref tokenStartIndex);
+                continue;
+            }
+
+            if (char.IsWhiteSpace(character))
+            {
+                FlushToken(units, token, ref tokenStartIndex);
+                displayIndex++;
+                continue;
+            }
+
+            if (tokenStartIndex < 0)
+            {
+                tokenStartIndex = displayIndex;
+            }
+
+            token.Append(character);
+            displayIndex++;
         }
+
+        FlushToken(units, token, ref tokenStartIndex);
 
         return new LyricsLine(
             RawText: line,
-            DisplayText: string.Concat(segments),
+            DisplayText: displayText,
             Units: units);
+    }
+
+    private static void FlushToken(List<LyricsUnit> units, StringBuilder token, ref int tokenStartIndex)
+    {
+        if (token.Length == 0 || tokenStartIndex < 0)
+        {
+            token.Clear();
+            tokenStartIndex = -1;
+            return;
+        }
+
+        var text = token.ToString();
+        units.Add(new LyricsUnit(text, tokenStartIndex, text.Length));
+        token.Clear();
+        tokenStartIndex = -1;
     }
 }

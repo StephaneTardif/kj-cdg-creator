@@ -31,6 +31,12 @@ if (args.Length >= 2 && string.Equals(args[0], "audio-demo", StringComparison.Or
     return;
 }
 
+if (args.Length >= 2 && string.Equals(args[0], "live-tap-demo", StringComparison.OrdinalIgnoreCase))
+{
+    RunLiveTapDemo(args[1]);
+    return;
+}
+
 if (args.Length >= 1 && string.Equals(args[0], "frame-demo", StringComparison.OrdinalIgnoreCase))
 {
     RunFrameDemo();
@@ -404,4 +410,71 @@ static void RunAudioDemo(string sourceMp3Path)
 
         Thread.Sleep(250);
     }
+}
+
+static void RunLiveTapDemo(string sourceMp3Path)
+{
+    const string sampleLyrics = """
+        Be|cause I'm hap|py
+        Clap a|long
+        """;
+
+    if (Console.IsInputRedirected)
+    {
+        Console.WriteLine("live-tap-demo requires an interactive console.");
+        return;
+    }
+
+    var lyrics = LyricsParser.Parse(sampleLyrics);
+    var timing = TimingDocumentBuilder.FromLyrics(lyrics);
+    using var audio = new Mp3AudioTimeSource(sourceMp3Path);
+    var controller = new LiveTapTimingController(timing, audio);
+
+    Console.WriteLine("Live tap demo");
+    Console.WriteLine("Lyrics:");
+    Console.WriteLine(sampleLyrics);
+    Console.WriteLine("Commands: Space = tap, U = undo, R = reset, P = play/pause, S = stop, Q = quit");
+    Console.WriteLine();
+
+    audio.Play();
+    PrintLiveTapStatus(controller.GetStatus("Playback started."));
+
+    while (true)
+    {
+        var key = Console.ReadKey(intercept: true).Key;
+
+        var status = key switch
+        {
+            ConsoleKey.Spacebar => controller.HandleCommand(LiveTapTimingCommand.RecordTap),
+            ConsoleKey.U => controller.HandleCommand(LiveTapTimingCommand.Undo),
+            ConsoleKey.R => controller.HandleCommand(LiveTapTimingCommand.Reset),
+            ConsoleKey.P => controller.HandleCommand(LiveTapTimingCommand.TogglePlayPause),
+            ConsoleKey.S => controller.HandleCommand(LiveTapTimingCommand.Stop),
+            ConsoleKey.Q => controller.HandleCommand(LiveTapTimingCommand.Quit),
+            _ => controller.GetStatus("Unsupported key. Use Space, U, R, P, S, or Q.")
+        };
+
+        PrintLiveTapStatus(status);
+
+        if (key == ConsoleKey.Q)
+        {
+            Console.WriteLine();
+            Console.WriteLine("Recorded timestamps:");
+            foreach (var unit in timing.Units)
+            {
+                Console.WriteLine($"  [{unit.UnitIndex}] {unit.Text,-15} {unit.Timestamp?.ToString(@"hh\:mm\:ss\.fff") ?? "<unset>"}");
+            }
+            return;
+        }
+    }
+}
+
+static void PrintLiveTapStatus(LiveTapTimingStatus status)
+{
+    Console.WriteLine(status.Message);
+    Console.WriteLine($"  Current unit:    {status.CurrentUnitText ?? "<complete>"}");
+    Console.WriteLine($"  Current index:   {status.CurrentUnitIndex}");
+    Console.WriteLine($"  Timed/untimed:   {status.TimedCount} / {status.UntimedCount}");
+    Console.WriteLine($"  Playback active: {status.IsPlaying}");
+    Console.WriteLine();
 }

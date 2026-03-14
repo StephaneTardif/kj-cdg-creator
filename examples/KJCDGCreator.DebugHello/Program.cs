@@ -3,6 +3,7 @@ using KJCDGCreator.Core.Lyrics;
 using KJCDGCreator.Core.Packaging;
 using KJCDGCreator.Core.Rendering;
 using KJCDGCreator.Core.Timing;
+using KJCDGCreator.Audio.Timing;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -21,6 +22,12 @@ if (args.Length >= 1 && string.Equals(args[0], "export-demo", StringComparison.O
 if (args.Length >= 1 && string.Equals(args[0], "package-demo", StringComparison.OrdinalIgnoreCase))
 {
     RunPackageDemo(args.Skip(1).FirstOrDefault());
+    return;
+}
+
+if (args.Length >= 2 && string.Equals(args[0], "audio-demo", StringComparison.OrdinalIgnoreCase))
+{
+    RunAudioDemo(args[1]);
     return;
 }
 
@@ -341,4 +348,60 @@ static void RunPackageDemo(string? sourceMp3Path)
     Console.WriteLine($"  MP3: {result.OutputMp3Path}");
     Console.WriteLine($"  CDG: {result.OutputCdgPath}");
     Console.WriteLine($"  ZIP: {result.OutputZipPath}");
+}
+
+static void RunAudioDemo(string sourceMp3Path)
+{
+    using var audio = new Mp3AudioTimeSource(sourceMp3Path);
+
+    Console.WriteLine("Audio demo");
+    Console.WriteLine("Commands: p = play/pause, s = stop, q = quit");
+    Console.WriteLine();
+
+    audio.Play();
+
+    if (Console.IsInputRedirected)
+    {
+        for (var index = 0; index < 5; index++)
+        {
+            Console.WriteLine($"Current time: {audio.CurrentTime:hh\\:mm\\:ss}  State: {audio.State}");
+            Thread.Sleep(1000);
+        }
+
+        audio.Stop();
+        return;
+    }
+
+    while (true)
+    {
+        Console.Write($"\rCurrent time: {audio.CurrentTime:hh\\:mm\\:ss}  State: {audio.State,-7}");
+
+        if (Console.KeyAvailable)
+        {
+            var key = Console.ReadKey(intercept: true).Key;
+
+            switch (key)
+            {
+                case ConsoleKey.P:
+                    if (audio.IsPlaying)
+                    {
+                        audio.Pause();
+                    }
+                    else
+                    {
+                        audio.Play();
+                    }
+                    break;
+                case ConsoleKey.S:
+                    audio.Stop();
+                    break;
+                case ConsoleKey.Q:
+                    audio.Stop();
+                    Console.WriteLine();
+                    return;
+            }
+        }
+
+        Thread.Sleep(250);
+    }
 }

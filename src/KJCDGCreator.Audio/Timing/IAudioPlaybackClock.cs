@@ -1,6 +1,6 @@
 namespace KJCDGCreator.Audio.Timing;
 
-public interface IAudioPlaybackClock
+public interface IAudioPlaybackClock : IAudioTimeSource
 {
     AudioPlaybackState State { get; }
 

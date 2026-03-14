@@ -50,6 +50,7 @@ Implemented so far:
 14. ✔ Active page selection and page layout
 15. ✔ End-to-end karaoke frame rendering
 16. ✔ CDG timeline export
+17. ✔ MP3 + CDG packaging
 
 Still intentionally deferred:
 

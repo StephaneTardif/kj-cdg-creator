@@ -1,5 +1,6 @@
 using KJCDGCreator.Core.Cdg;
 using KJCDGCreator.Core.Lyrics;
+using KJCDGCreator.Core.Packaging;
 using KJCDGCreator.Core.Rendering;
 using KJCDGCreator.Core.Timing;
 using System.Security.Cryptography;
@@ -14,6 +15,12 @@ if (args.Length >= 1 && string.Equals(args[0], "highlight-demo", StringCompariso
 if (args.Length >= 1 && string.Equals(args[0], "export-demo", StringComparison.OrdinalIgnoreCase))
 {
     RunExportDemo();
+    return;
+}
+
+if (args.Length >= 1 && string.Equals(args[0], "package-demo", StringComparison.OrdinalIgnoreCase))
+{
+    RunPackageDemo(args.Skip(1).FirstOrDefault());
     return;
 }
 
@@ -297,4 +304,41 @@ static void RunExportDemo()
     Console.WriteLine($"Exported CDG timeline: {result.OutputPath}");
     Console.WriteLine($"Frames rendered:       {result.FrameCount}");
     Console.WriteLine($"Packets written:       {result.PacketCount}");
+}
+
+static void RunPackageDemo(string? sourceMp3Path)
+{
+    if (string.IsNullOrWhiteSpace(sourceMp3Path))
+    {
+        Console.WriteLine("Usage: dotnet run --project examples/KJCDGCreator.DebugHello/KJCDGCreator.DebugHello.csproj -- package-demo /path/to/source.mp3");
+        return;
+    }
+
+    var repositoryRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+    var outputDirectory = Path.Combine(repositoryRoot, "examples", "generated");
+    Directory.CreateDirectory(outputDirectory);
+
+    var sourceCdgPath = Path.Combine(outputDirectory, "export-demo.cdg");
+    if (!File.Exists(sourceCdgPath))
+    {
+        Console.WriteLine($"CDG source not found at {sourceCdgPath}.");
+        Console.WriteLine("Run `export-demo` first to generate a timeline.");
+        return;
+    }
+
+    var result = KaraokePackageBuilder.BuildPackage(
+        sourceMp3Path,
+        sourceCdgPath,
+        outputDirectory,
+        new KaraokePackageOptions(
+            BaseFileName: "demo-package",
+            CopyMp3: true,
+            CopyCdg: true,
+            CreateZip: true,
+            OverwriteExisting: true));
+
+    Console.WriteLine("Packaged karaoke files:");
+    Console.WriteLine($"  MP3: {result.OutputMp3Path}");
+    Console.WriteLine($"  CDG: {result.OutputCdgPath}");
+    Console.WriteLine($"  ZIP: {result.OutputZipPath}");
 }

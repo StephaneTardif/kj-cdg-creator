@@ -3,7 +3,8 @@
   "artist": "Example Artist",
   "audioFile": "happy-demo.mp3",
   "lyrics": [
-    "Be|cause I'm hap|py"
+    "Be|cause I'm hap|py",
+    "Clap a|long"
   ],
   "palette": {
     "background": 0,

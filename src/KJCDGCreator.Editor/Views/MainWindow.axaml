@@ -15,7 +15,7 @@
       <Border Padding="16" Background="#101820" CornerRadius="12">
         <StackPanel Spacing="12">
           <TextBlock FontSize="18" FontWeight="SemiBold" Text="Lyrics" />
-          <TextBox AcceptsReturn="True" Height="320" Text="{Binding LyricsDraft}" Watermark="Be|cause I'm hap|py" />
+          <TextBox AcceptsReturn="True" Height="320" Text="{Binding LyricsDraft}" Watermark="Be|cause I'm hap|py&#10;Clap a|long" />
           <TextBlock Text="{Binding LyricsHint}" TextWrapping="Wrap" />
         </StackPanel>
       </Border>

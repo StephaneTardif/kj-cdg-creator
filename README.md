@@ -11,10 +11,24 @@ KJ CDG Creator is a cross-platform desktop application for building classic kara
 
 ## Planned v1 scope
 
-1. Lyrics editor with `|` syllable separators.
+1. Lyrics editor where spaces create word timing units automatically and `|` adds extra syllable splits inside a word.
 2. Tap timing mode that records syllable timestamps with the Space key.
 3. CDG rendering engine for classic karaoke highlighting.
 4. Export pipeline for standard karaoke players such as VirtualDJ.
+
+## Lyrics Authoring
+
+- Spaces automatically create timing units between words.
+- `|` creates additional timing unit boundaries inside a word.
+- Newlines create lyric lines.
+- Blank lines create page breaks.
+
+Example:
+
+```text
+Be|cause I'm hap|py
+Clap a|long
+```
 
 ## Solution layout
 

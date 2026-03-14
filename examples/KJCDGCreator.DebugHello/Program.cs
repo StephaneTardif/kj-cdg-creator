@@ -104,6 +104,7 @@ static void RunTapDemo()
     Console.WriteLine("Tap demo");
     Console.WriteLine("Lyrics:");
     Console.WriteLine(sampleLyrics);
+    Console.WriteLine("Authoring rule: spaces create timing units automatically; use | only for extra splits inside a word.");
     Console.WriteLine();
 
     PrintSessionState("Startup", session, timing);
@@ -433,6 +434,7 @@ static void RunLiveTapDemo(string sourceMp3Path)
     Console.WriteLine("Live tap demo");
     Console.WriteLine("Lyrics:");
     Console.WriteLine(sampleLyrics);
+    Console.WriteLine("Authoring rule: spaces create timing units automatically; use | only for extra splits inside a word.");
     Console.WriteLine("Commands: Space = tap, U = undo, R = reset, P = play/pause, S = stop, Q = quit");
     Console.WriteLine();
 

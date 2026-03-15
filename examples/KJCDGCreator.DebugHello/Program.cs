@@ -19,6 +19,12 @@ if (args.Length >= 1 && string.Equals(args[0], "export-demo", StringComparison.O
     return;
 }
 
+if (args.Length >= 1 && string.Equals(args[0], "intro-demo", StringComparison.OrdinalIgnoreCase))
+{
+    RunIntroDemo();
+    return;
+}
+
 if (args.Length >= 1 && string.Equals(args[0], "package-demo", StringComparison.OrdinalIgnoreCase))
 {
     RunPackageDemo(args.Skip(1).FirstOrDefault());
@@ -318,6 +324,102 @@ static void RunExportDemo()
     Console.WriteLine($"Exported CDG timeline: {result.OutputPath}");
     Console.WriteLine($"Frames rendered:       {result.FrameCount}");
     Console.WriteLine($"Packets written:       {result.PacketCount}");
+}
+
+static void RunIntroDemo()
+{
+    const string sampleLyrics = """
+        Be|cause I'm hap|py
+        Clap a|long
+        """;
+
+    var metadata = new KaraokeSongMetadata("HAPPY DEMO", "KJ CDG CREATOR");
+    var lyrics = LyricsParser.Parse(sampleLyrics);
+    var timing = TimingDocumentBuilder.FromLyrics(lyrics);
+    timing.AssignTimestamp(0, TimeSpan.FromSeconds(3));
+    timing.AssignTimestamp(1, TimeSpan.FromSeconds(4));
+    timing.AssignTimestamp(2, TimeSpan.FromSeconds(5));
+    timing.AssignTimestamp(3, TimeSpan.FromSeconds(6));
+    timing.AssignTimestamp(4, TimeSpan.FromSeconds(7));
+
+    var renderOptions = new KaraokeFrameRenderOptions(
+        new PageLayoutOptions(
+            StartRow: 6,
+            StartColumn: 4,
+            LineSpacing: 2,
+            CenterHorizontally: true,
+            CenterVertically: true),
+        new HighlightedLyricsRenderOptions(
+            StartRow: 6,
+            StartColumn: 4,
+            LineSpacing: 2,
+            BackgroundColor: 0,
+            BaseTextColor: 15,
+            HighlightTextColor: 12,
+            ClearScreenBeforeRender: true),
+        SongMetadata: metadata,
+        IntroOptions: new IntroTitleScreenOptions(
+            Enabled: true,
+            FixedDuration: TimeSpan.FromSeconds(2),
+            UseFirstLyricTimestampWhenLonger: true,
+            BackgroundColor: 0,
+            TitleColor: 10,
+            ArtistColor: 14,
+            TitleRow: 4,
+            ArtistRow: 7,
+            CenterHorizontally: true));
+
+    var repositoryRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+    var outputDirectory = Path.Combine(repositoryRoot, "examples", "generated");
+    Directory.CreateDirectory(outputDirectory);
+
+    RenderAndPrintFrame("intro-demo-frame-1.cdg", "Intro frame", TimeSpan.FromSeconds(1), lyrics, timing, renderOptions, outputDirectory);
+    RenderAndPrintFrame("intro-demo-frame-2.cdg", "Lyric frame", TimeSpan.FromSeconds(3.5), lyrics, timing, renderOptions, outputDirectory);
+
+    var timelinePath = Path.Combine(outputDirectory, "intro-demo-export.cdg");
+    var exportResult = CdgTimelineExporter.Export(
+        lyrics,
+        timing,
+        timelinePath,
+        new CdgTimelineExportOptions(
+            FrameStep: TimeSpan.FromSeconds(1),
+            FrameRenderOptions: renderOptions,
+            EndPadding: TimeSpan.FromSeconds(1),
+            IncludeInitialClearFrame: true));
+
+    Console.WriteLine($"Timeline export: {exportResult.OutputPath}");
+    Console.WriteLine($"  Frames:  {exportResult.FrameCount}");
+    Console.WriteLine($"  Packets: {exportResult.PacketCount}");
+}
+
+static void RenderAndPrintFrame(
+    string fileName,
+    string label,
+    TimeSpan playbackTime,
+    LyricsDocument lyrics,
+    TimingDocument timing,
+    KaraokeFrameRenderOptions renderOptions,
+    string outputDirectory)
+{
+    var screen = new CdgScreenBuffer(CdgScreenBuffer.CreateBlankTile(backgroundColor: renderOptions.HighlightOptions.BackgroundColor));
+    var result = KaraokeFrameRenderer.RenderFrame(lyrics, timing, playbackTime, screen, renderOptions);
+    var outputPath = Path.Combine(outputDirectory, fileName);
+
+    using (var stream = File.Create(outputPath))
+    {
+        foreach (var packet in CdgScreenBufferRenderer.RenderFullScreen(screen, renderOptions.HighlightOptions.BackgroundColor))
+        {
+            var bytes = packet.ToBytes();
+            stream.Write(bytes, 0, bytes.Length);
+        }
+    }
+
+    Console.WriteLine($"{label}: {outputPath}");
+    Console.WriteLine($"  Playback time: {playbackTime}");
+    Console.WriteLine($"  Page index:    {result.PageIndex}");
+    Console.WriteLine("  ASCII preview:");
+    Console.WriteLine(CdgInspector.RenderAsciiPreview(outputPath));
+    Console.WriteLine();
 }
 
 static void RunPackageDemo(string? sourceMp3Path)

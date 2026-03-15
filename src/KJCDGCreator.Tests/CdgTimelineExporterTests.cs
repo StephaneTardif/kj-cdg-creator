@@ -102,6 +102,46 @@ public sealed class CdgTimelineExporterTests : IDisposable
         Assert.True(File.Exists(outputPath));
     }
 
+    [Fact]
+    public void Export_IncludesIntroScreenPacketsWhenEnabled()
+    {
+        var outputPath = CreateOutputPath("intro.cdg");
+        var lyrics = new LyricsDocument(Array.Empty<LyricsPage>());
+        var timing = new TimingDocument(Array.Empty<TimedUnit>());
+
+        var result = CdgTimelineExporter.Export(
+            lyrics,
+            timing,
+            outputPath,
+            CreateOptions() with
+            {
+                EndPadding = TimeSpan.Zero,
+                FrameRenderOptions = CreateOptions().FrameRenderOptions with
+                {
+                    SongMetadata = new KaraokeSongMetadata("INTRO TITLE", "INTRO ARTIST"),
+                    IntroOptions = new IntroTitleScreenOptions(
+                        Enabled: true,
+                        FixedDuration: TimeSpan.FromSeconds(2),
+                        UseFirstLyricTimestampWhenLonger: false,
+                        BackgroundColor: 0,
+                        TitleColor: 10,
+                        ArtistColor: 14,
+                        TitleRow: 2,
+                        ArtistRow: 4,
+                        CenterHorizontally: false)
+                }
+            });
+
+        var packets = CdgInspector.ReadPackets(outputPath);
+
+        Assert.True(result.FrameCount >= 3);
+        Assert.Contains(
+            packets,
+            packet => packet.Type == CdgPacketType.TileBlockNormal
+                && packet.Row == 2
+                && packet.ForegroundColor == 10);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_outputDirectory))

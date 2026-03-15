@@ -18,6 +18,12 @@ public static class KaraokeFrameRenderer
         ArgumentNullException.ThrowIfNull(screenBuffer);
         ArgumentNullException.ThrowIfNull(options);
 
+        if (IntroScreenSelector.IsIntroActive(timing, playbackTime, options.SongMetadata, options.IntroOptions))
+        {
+            IntroTitleScreenRenderer.Render(options.SongMetadata!, screenBuffer, options.IntroOptions!);
+            return new RenderedFrameResult(PageIndex: -1, HasContent: true);
+        }
+
         if (lyricsDocument.Pages.Count == 0)
         {
             if (options.HighlightOptions.ClearScreenBeforeRender)

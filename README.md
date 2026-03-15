@@ -67,6 +67,7 @@ Implemented so far:
 17. ✔ MP3 + CDG packaging
 18. ✔ Audio time source abstraction
 19. ✔ Live tap timing demo
+20. ✔ Intro/title screen support
 
 Still intentionally deferred:
 

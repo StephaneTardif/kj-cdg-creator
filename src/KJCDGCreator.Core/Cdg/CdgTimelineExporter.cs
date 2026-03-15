@@ -31,7 +31,7 @@ public static class CdgTimelineExporter
         var backgroundColor = options.FrameRenderOptions.HighlightOptions.BackgroundColor;
         var previousScreen = new CdgScreenBuffer(CdgScreenBuffer.CreateBlankTile(backgroundColor));
         var endPadding = options.EndPadding ?? TimeSpan.Zero;
-        var endTime = GetEndTime(timing, endPadding);
+        var endTime = GetEndTime(timing, endPadding, options.FrameRenderOptions);
         var frameTimes = GetFrameTimes(endTime, options.FrameStep);
         var packetCount = 0;
 
@@ -65,7 +65,7 @@ public static class CdgTimelineExporter
         return new CdgFrameSequenceResult(outputPath, frameCount, packetCount);
     }
 
-    private static TimeSpan GetEndTime(TimingDocument timing, TimeSpan endPadding)
+    private static TimeSpan GetEndTime(TimingDocument timing, TimeSpan endPadding, KaraokeFrameRenderOptions frameRenderOptions)
     {
         var latestTimestamp = timing.Units
             .Where(unit => unit.Timestamp.HasValue)
@@ -73,7 +73,9 @@ public static class CdgTimelineExporter
             .DefaultIfEmpty(TimeSpan.Zero)
             .Max();
 
-        return latestTimestamp + endPadding;
+        var introDuration = IntroScreenSelector.GetEffectiveDuration(timing, frameRenderOptions.IntroOptions);
+        var lyricEndTime = latestTimestamp + endPadding;
+        return introDuration > lyricEndTime ? introDuration : lyricEndTime;
     }
 
     private static IReadOnlyList<TimeSpan> GetFrameTimes(TimeSpan endTime, TimeSpan frameStep)

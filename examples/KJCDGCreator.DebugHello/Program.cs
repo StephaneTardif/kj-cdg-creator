@@ -1,6 +1,7 @@
 using KJCDGCreator.Core.Cdg;
 using KJCDGCreator.Core.Lyrics;
 using KJCDGCreator.Core.Packaging;
+using KJCDGCreator.Core.Projects;
 using KJCDGCreator.Core.Rendering;
 using KJCDGCreator.Core.Timing;
 using KJCDGCreator.Audio.Timing;
@@ -28,6 +29,12 @@ if (args.Length >= 1 && string.Equals(args[0], "intro-demo", StringComparison.Or
 if (args.Length >= 1 && string.Equals(args[0], "package-demo", StringComparison.OrdinalIgnoreCase))
 {
     RunPackageDemo(args.Skip(1).FirstOrDefault());
+    return;
+}
+
+if (args.Length >= 1 && string.Equals(args[0], "project-demo", StringComparison.OrdinalIgnoreCase))
+{
+    RunProjectDemo();
     return;
 }
 
@@ -457,6 +464,81 @@ static void RunPackageDemo(string? sourceMp3Path)
     Console.WriteLine($"  MP3: {result.OutputMp3Path}");
     Console.WriteLine($"  CDG: {result.OutputCdgPath}");
     Console.WriteLine($"  ZIP: {result.OutputZipPath}");
+}
+
+static void RunProjectDemo()
+{
+    const string rawLyrics = """
+        Be|cause I'm hap|py
+        Clap a|long
+        """;
+
+    var repositoryRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+    var outputDirectory = Path.Combine(repositoryRoot, "examples", "generated");
+    Directory.CreateDirectory(outputDirectory);
+    var outputPath = Path.Combine(outputDirectory, "project-demo.kjproj.json");
+
+    var timing = TimingDocumentBuilder.FromLyrics(LyricsParser.Parse(rawLyrics));
+    timing.AssignTimestamp(0, TimeSpan.FromSeconds(1));
+    timing.AssignTimestamp(1, TimeSpan.FromSeconds(2));
+    timing.AssignTimestamp(2, TimeSpan.FromSeconds(3));
+
+    var introOptions = new IntroTitleScreenOptions(
+        Enabled: true,
+        FixedDuration: TimeSpan.FromSeconds(2),
+        UseFirstLyricTimestampWhenLonger: true,
+        BackgroundColor: 0,
+        TitleColor: 10,
+        ArtistColor: 14,
+        TitleRow: 4,
+        ArtistRow: 7,
+        CenterHorizontally: true);
+
+    var frameOptions = new KaraokeFrameRenderOptions(
+        new PageLayoutOptions(
+            StartRow: 6,
+            StartColumn: 4,
+            LineSpacing: 2,
+            CenterHorizontally: true,
+            CenterVertically: true),
+        new HighlightedLyricsRenderOptions(
+            StartRow: 6,
+            StartColumn: 4,
+            LineSpacing: 2,
+            BackgroundColor: 0,
+            BaseTextColor: 15,
+            HighlightTextColor: 12,
+            ClearScreenBeforeRender: true),
+        SongMetadata: new KaraokeSongMetadata("Happy Demo", "KJ CDG Creator"),
+        IntroOptions: introOptions);
+
+    var project = new KaraokeProject(
+        ProjectVersion: KaraokeProjectSerializer.CurrentProjectVersion,
+        Title: "Happy Demo",
+        Artist: "KJ CDG Creator",
+        RawLyricsText: rawLyrics,
+        Timing: timing,
+        SourceMp3Path: "/music/happy-demo.mp3",
+        IntroOptions: introOptions,
+        FrameRenderOptions: frameOptions,
+        ExportOptions: new CdgTimelineExportOptions(
+            FrameStep: TimeSpan.FromSeconds(1),
+            FrameRenderOptions: frameOptions,
+            EndPadding: TimeSpan.FromSeconds(1),
+            IncludeInitialClearFrame: true));
+
+    KaraokeProjectSerializer.Save(project, outputPath);
+    var loaded = KaraokeProjectSerializer.Load(outputPath);
+
+    Console.WriteLine($"Saved project: {outputPath}");
+    Console.WriteLine("Loaded project fields:");
+    Console.WriteLine($"  Version:     {loaded.ProjectVersion}");
+    Console.WriteLine($"  Title:       {loaded.Title}");
+    Console.WriteLine($"  Artist:      {loaded.Artist}");
+    Console.WriteLine($"  Source MP3:  {loaded.SourceMp3Path}");
+    Console.WriteLine($"  Lyrics lines:{loaded.BuildLyricsDocument().Pages.SelectMany(page => page.Lines).Count()}");
+    Console.WriteLine($"  Timed units: {loaded.Timing.TimedCount}");
+    Console.WriteLine($"  Intro enabled: {loaded.IntroOptions?.Enabled}");
 }
 
 static void RunAudioDemo(string sourceMp3Path)

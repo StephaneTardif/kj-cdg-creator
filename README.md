@@ -68,6 +68,7 @@ Implemented so far:
 18. ✔ Audio time source abstraction
 19. ✔ Live tap timing demo
 20. ✔ Intro/title screen support
+21. ✔ Project save/load
 
 Still intentionally deferred:
 

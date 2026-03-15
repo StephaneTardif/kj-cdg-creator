@@ -139,6 +139,30 @@
             <TextBlock Foreground="#3D352D" Text="Validation" />
             <TextBlock Foreground="#2B241E" Text="{Binding ValidationMessage}" TextWrapping="Wrap" />
           </StackPanel>
+          <Border Margin="0,8,0,0" Padding="12" Background="#F5EEE1" CornerRadius="10">
+            <StackPanel Spacing="8">
+              <TextBlock FontSize="16" FontWeight="SemiBold" Foreground="#201A14" Text="Tap Timing" />
+              <StackPanel Spacing="2">
+                <TextBlock Foreground="#3D352D" Text="Current Unit" />
+                <TextBlock Foreground="#201A14" FontWeight="SemiBold" Text="{Binding CurrentUnitText}" TextWrapping="Wrap" />
+              </StackPanel>
+              <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="Auto,*">
+                <TextBlock Foreground="#3D352D" Text="Progress" />
+                <TextBlock Grid.Column="1" Margin="10,0,0,0" Foreground="#2B241E" Text="{Binding CurrentUnitProgress}" />
+                <TextBlock Grid.Row="1" Foreground="#3D352D" Text="Counts" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Margin="10,0,0,0" Foreground="#2B241E" Text="{Binding TimingCounts}" />
+                <TextBlock Grid.Row="2" Foreground="#3D352D" Text="Audio Time" />
+                <TextBlock Grid.Row="2" Grid.Column="1" Margin="10,0,0,0" Foreground="#2B241E" Text="{Binding CurrentAudioTimeDisplay}" />
+              </Grid>
+              <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*">
+                <Button Grid.Row="0" Classes="action-button" IsEnabled="{Binding CanPlayPause}" Click="PlayPauseTiming_Click" Content="{Binding PlayPauseButtonText}" />
+                <Button Grid.Row="0" Grid.Column="1" Margin="8,0,0,0" Classes="action-button" IsEnabled="{Binding CanStop}" Click="StopTiming_Click" Content="Stop" />
+                <Button Grid.Row="1" Margin="0,8,0,0" Classes="action-button save-button" IsEnabled="{Binding CanTap}" Click="TapTiming_Click" Content="Tap" />
+                <Button Grid.Row="1" Grid.Column="1" Margin="8,8,0,0" Classes="action-button" IsEnabled="{Binding CanUndo}" Click="UndoTiming_Click" Content="Undo" />
+                <Button Grid.Row="2" Grid.ColumnSpan="2" Margin="0,8,0,0" Classes="action-button" IsEnabled="{Binding CanResetTiming}" Click="ResetTiming_Click" Content="Reset Timing" />
+              </Grid>
+            </StackPanel>
+          </Border>
         </StackPanel>
       </Border>
 

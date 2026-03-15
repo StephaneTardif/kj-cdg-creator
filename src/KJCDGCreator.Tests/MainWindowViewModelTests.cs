@@ -1,3 +1,5 @@
+using KJCDGCreator.Audio.Timing;
+using KJCDGCreator.Core.Projects;
 using KJCDGCreator.Editor.ViewModels;
 
 namespace KJCDGCreator.Tests;
@@ -96,5 +98,109 @@ public sealed class MainWindowViewModelTests
         Assert.Equal(string.Empty, viewModel.RawLyricsText);
         Assert.False(viewModel.HasUnsavedChanges);
         Assert.Null(viewModel.CurrentProjectPath);
+    }
+
+    [Fact]
+    public void TogglePlayback_StartsTimingSession()
+    {
+        var audio = new MockAudioTimeSource();
+        var viewModel = new MainWindowViewModel(new TestAudioTimeSourceFactory(_ => audio))
+        {
+            RawLyricsText = "Be|cause I'm hap|py",
+            SourceMp3Path = "/music/demo.mp3"
+        };
+
+        viewModel.TogglePlayback();
+
+        Assert.True(audio.IsPlaying);
+        Assert.Equal("Pause", viewModel.PlayPauseButtonText);
+        Assert.Equal("Be", viewModel.CurrentUnitText);
+    }
+
+    [Fact]
+    public void Tap_AdvancesCurrentUnit()
+    {
+        var audio = new MockAudioTimeSource();
+        var viewModel = new MainWindowViewModel(new TestAudioTimeSourceFactory(_ => audio))
+        {
+            RawLyricsText = "Be|cause",
+            SourceMp3Path = "/music/demo.mp3"
+        };
+
+        viewModel.TogglePlayback();
+        audio.Advance(TimeSpan.FromSeconds(2));
+        viewModel.TapCurrentUnit();
+
+        Assert.Equal("cause", viewModel.CurrentUnitText);
+        Assert.Equal("1 timed / 1 untimed", viewModel.TimingCounts);
+    }
+
+    [Fact]
+    public void UndoAndReset_UpdateCountsCorrectly()
+    {
+        var audio = new MockAudioTimeSource();
+        var viewModel = new MainWindowViewModel(new TestAudioTimeSourceFactory(_ => audio))
+        {
+            RawLyricsText = "Be|cause",
+            SourceMp3Path = "/music/demo.mp3"
+        };
+
+        viewModel.TogglePlayback();
+        audio.Advance(TimeSpan.FromSeconds(1));
+        viewModel.TapCurrentUnit();
+        viewModel.UndoTiming();
+
+        Assert.Equal("0 timed / 2 untimed", viewModel.TimingCounts);
+
+        audio.Advance(TimeSpan.FromSeconds(2));
+        viewModel.TapCurrentUnit();
+        viewModel.ResetTiming();
+
+        Assert.Equal("0 timed / 2 untimed", viewModel.TimingCounts);
+    }
+
+    [Fact]
+    public void InvalidMp3Path_SurfacesErrorState()
+    {
+        var viewModel = new MainWindowViewModel(new TestAudioTimeSourceFactory(_ => throw new FileNotFoundException("MP3 file was not found.")))
+        {
+            RawLyricsText = "Be cause",
+            SourceMp3Path = "/missing/demo.mp3"
+        };
+
+        viewModel.TogglePlayback();
+
+        Assert.Contains("Unable to initialize audio", viewModel.StatusMessage, StringComparison.Ordinal);
+        Assert.Equal("Play", viewModel.PlayPauseButtonText);
+    }
+
+    [Fact]
+    public void SaveProject_PersistsUpdatedTiming()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"project-{Guid.NewGuid():N}.kjproj.json");
+        try
+        {
+            var audio = new MockAudioTimeSource();
+            var viewModel = new MainWindowViewModel(new TestAudioTimeSourceFactory(_ => audio))
+            {
+                RawLyricsText = "Be|cause",
+                SourceMp3Path = "/music/demo.mp3"
+            };
+
+            viewModel.TogglePlayback();
+            audio.Advance(TimeSpan.FromSeconds(2));
+            viewModel.TapCurrentUnit();
+            viewModel.SaveProject(path);
+
+            var loaded = KaraokeProjectSerializer.Load(path);
+            Assert.Contains(loaded.Timing.Units, unit => unit.Timestamp == TimeSpan.FromSeconds(2));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
     }
 }

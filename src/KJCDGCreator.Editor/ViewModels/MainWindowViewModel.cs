@@ -1,15 +1,18 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using KJCDGCreator.Audio.Timing;
 using KJCDGCreator.Core.Projects;
 using KJCDGCreator.Core.Rendering;
 using KJCDGCreator.Core.Timing;
+using KJCDGCreator.Editor.Services;
 
 namespace KJCDGCreator.Editor.ViewModels;
 
-public sealed class MainWindowViewModel : INotifyPropertyChanged
+public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
 {
     private const string DefaultWindowTitle = "KJ CDG Creator";
 
+    private readonly IAudioTimeSourceFactory _audioTimeSourceFactory;
     private string _title = string.Empty;
     private string _artist = string.Empty;
     private string _sourceMp3Path = string.Empty;
@@ -22,6 +25,30 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private IntroTitleScreenOptions? _introOptions;
     private KaraokeFrameRenderOptions? _frameRenderOptions;
     private Core.Cdg.CdgTimelineExportOptions? _exportOptions;
+    private IAudioTimeSource? _audioTimeSource;
+    private LiveTapTimingController? _liveTapTimingController;
+    private string? _loadedAudioSourcePath;
+    private string _currentUnitText = "<no units>";
+    private string _currentUnitProgress = "0 / 0";
+    private string _timingCounts = "0 timed / 0 untimed";
+    private string _currentAudioTimeDisplay = "00:00:00.000";
+    private string _playPauseButtonText = "Play";
+    private bool _canPlayPause;
+    private bool _canStop;
+    private bool _canTap;
+    private bool _canUndo;
+    private bool _canResetTiming;
+
+    public MainWindowViewModel()
+        : this(new Mp3AudioTimeSourceFactory())
+    {
+    }
+
+    public MainWindowViewModel(IAudioTimeSourceFactory audioTimeSourceFactory)
+    {
+        _audioTimeSourceFactory = audioTimeSourceFactory ?? throw new ArgumentNullException(nameof(audioTimeSourceFactory));
+        RefreshTimingSummary();
+    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -106,8 +133,69 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
     }
 
+    public string CurrentUnitText
+    {
+        get => _currentUnitText;
+        private set => SetProperty(ref _currentUnitText, value);
+    }
+
+    public string CurrentUnitProgress
+    {
+        get => _currentUnitProgress;
+        private set => SetProperty(ref _currentUnitProgress, value);
+    }
+
+    public string TimingCounts
+    {
+        get => _timingCounts;
+        private set => SetProperty(ref _timingCounts, value);
+    }
+
+    public string CurrentAudioTimeDisplay
+    {
+        get => _currentAudioTimeDisplay;
+        private set => SetProperty(ref _currentAudioTimeDisplay, value);
+    }
+
+    public string PlayPauseButtonText
+    {
+        get => _playPauseButtonText;
+        private set => SetProperty(ref _playPauseButtonText, value);
+    }
+
+    public bool CanPlayPause
+    {
+        get => _canPlayPause;
+        private set => SetProperty(ref _canPlayPause, value);
+    }
+
+    public bool CanStop
+    {
+        get => _canStop;
+        private set => SetProperty(ref _canStop, value);
+    }
+
+    public bool CanTap
+    {
+        get => _canTap;
+        private set => SetProperty(ref _canTap, value);
+    }
+
+    public bool CanUndo
+    {
+        get => _canUndo;
+        private set => SetProperty(ref _canUndo, value);
+    }
+
+    public bool CanResetTiming
+    {
+        get => _canResetTiming;
+        private set => SetProperty(ref _canResetTiming, value);
+    }
+
     public void NewProject()
     {
+        DisposeTapTimingRuntime();
         _timing = CreateBlankTiming();
         _introOptions = null;
         _frameRenderOptions = null;
@@ -121,12 +209,14 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         UpdateValidationMessage();
         HasUnsavedChanges = false;
         StatusMessage = "New project ready.";
+        RefreshTimingSummary();
     }
 
     public void LoadProject(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
+        DisposeTapTimingRuntime();
         var project = KaraokeProjectSerializer.Load(path);
         _timing = project.Timing;
         _introOptions = project.IntroOptions;
@@ -141,6 +231,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         UpdateValidationMessage();
         HasUnsavedChanges = false;
         StatusMessage = $"Opened project: {Path.GetFileName(path)}";
+        RefreshTimingSummary();
     }
 
     public void SaveProject(string path)
@@ -154,6 +245,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         HasUnsavedChanges = false;
         UpdateValidationMessage();
         StatusMessage = $"Saved project: {Path.GetFileName(path)}";
+        RefreshTimingSummary();
     }
 
     public void SetStatusMessage(string message)
@@ -161,10 +253,75 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         StatusMessage = message;
     }
 
+    public void TogglePlayback()
+    {
+        if (!EnsureTapTimingSession())
+        {
+            return;
+        }
+
+        ApplyTapTimingStatus(_liveTapTimingController!.HandleCommand(LiveTapTimingCommand.TogglePlayPause), markDirty: false);
+    }
+
+    public void StopPlayback()
+    {
+        if (_liveTapTimingController is null)
+        {
+            SetStatusMessage("No timing session is active.");
+            return;
+        }
+
+        ApplyTapTimingStatus(_liveTapTimingController.HandleCommand(LiveTapTimingCommand.Stop), markDirty: true);
+    }
+
+    public void TapCurrentUnit()
+    {
+        if (!EnsureTapTimingSession())
+        {
+            return;
+        }
+
+        var timedBefore = _timing.TimedCount;
+        ApplyTapTimingStatus(_liveTapTimingController!.HandleCommand(LiveTapTimingCommand.RecordTap), markDirty: _timing.TimedCount != timedBefore);
+    }
+
+    public void UndoTiming()
+    {
+        if (_liveTapTimingController is null)
+        {
+            SetStatusMessage("No timing session is active.");
+            return;
+        }
+
+        var timedBefore = _timing.TimedCount;
+        ApplyTapTimingStatus(_liveTapTimingController.HandleCommand(LiveTapTimingCommand.Undo), markDirty: _timing.TimedCount != timedBefore);
+    }
+
+    public void ResetTiming()
+    {
+        if (!EnsureTapTimingSession())
+        {
+            return;
+        }
+
+        var timedBefore = _timing.TimedCount;
+        ApplyTapTimingStatus(_liveTapTimingController!.HandleCommand(LiveTapTimingCommand.Reset), markDirty: timedBefore > 0);
+    }
+
+    public void RefreshTapTimingState()
+    {
+        if (_audioTimeSource is not null)
+        {
+            CurrentAudioTimeDisplay = _audioTimeSource.CurrentTime.ToString(@"hh\:mm\:ss\.fff");
+        }
+
+        UpdateTapTimingCommands();
+    }
+
     public KaraokeProject BuildProjectForSave(string? targetPath = null)
     {
-        var effectivePath = string.IsNullOrWhiteSpace(targetPath) ? CurrentProjectPath : targetPath;
         var synchronizedTiming = SynchronizeTimingWithLyrics(_timing, RawLyricsText);
+        _timing = synchronizedTiming;
 
         return new KaraokeProject(
             ProjectVersion: KaraokeProjectSerializer.CurrentProjectVersion,
@@ -176,6 +333,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             IntroOptions: _introOptions,
             FrameRenderOptions: BuildFrameOptions(),
             ExportOptions: BuildExportOptions());
+    }
+
+    public void Dispose()
+    {
+        DisposeTapTimingRuntime();
     }
 
     private KaraokeFrameRenderOptions BuildFrameOptions()
@@ -228,6 +390,49 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         return updated;
     }
 
+    private bool EnsureTapTimingSession()
+    {
+        if (string.IsNullOrWhiteSpace(RawLyricsText))
+        {
+            SetStatusMessage("Enter lyrics before starting tap timing.");
+            RefreshTimingSummary();
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(SourceMp3Path))
+        {
+            SetStatusMessage("Set a source MP3 path before starting tap timing.");
+            RefreshTimingSummary();
+            return false;
+        }
+
+        try
+        {
+            if (_audioTimeSource is null || !string.Equals(_loadedAudioSourcePath, SourceMp3Path, StringComparison.Ordinal))
+            {
+                DisposeAudioOnly();
+                _audioTimeSource = _audioTimeSourceFactory.Create(SourceMp3Path);
+                _loadedAudioSourcePath = SourceMp3Path;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisposeAudioOnly();
+            SetStatusMessage($"Unable to initialize audio: {exception.Message}");
+            RefreshTimingSummary();
+            return false;
+        }
+
+        if (_liveTapTimingController is null)
+        {
+            _timing = SynchronizeTimingWithLyrics(_timing, RawLyricsText);
+            _liveTapTimingController = new LiveTapTimingController(_timing, _audioTimeSource);
+        }
+
+        ApplyTapTimingStatus(_liveTapTimingController.GetStatus("Tap timing ready."), markDirty: false);
+        return true;
+    }
+
     private static TimingDocument SynchronizeTimingWithLyrics(TimingDocument existingTiming, string rawLyricsText)
     {
         var rebuiltTiming = TimingDocumentBuilder.FromLyrics(Core.Lyrics.LyricsParser.Parse(rawLyricsText ?? string.Empty));
@@ -252,6 +457,54 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         return rebuiltTiming;
     }
 
+    private void ApplyTapTimingStatus(LiveTapTimingStatus status, bool markDirty)
+    {
+        CurrentUnitText = status.CurrentUnitText ?? "<complete>";
+        CurrentUnitProgress = _timing.Units.Count == 0
+            ? "0 / 0"
+            : $"{Math.Min(status.CurrentUnitIndex + 1, _timing.Units.Count)} / {_timing.Units.Count}";
+        TimingCounts = $"{status.TimedCount} timed / {status.UntimedCount} untimed";
+        CurrentAudioTimeDisplay = _audioTimeSource?.CurrentTime.ToString(@"hh\:mm\:ss\.fff") ?? "00:00:00.000";
+        PlayPauseButtonText = status.IsPlaying ? "Pause" : "Play";
+        UpdateTapTimingCommands();
+
+        if (!string.IsNullOrWhiteSpace(status.Message))
+        {
+            StatusMessage = status.Message;
+        }
+
+        if (markDirty)
+        {
+            HasUnsavedChanges = true;
+        }
+    }
+
+    private void RefreshTimingSummary()
+    {
+        var currentUntimed = _timing.Units.FirstOrDefault(unit => !unit.Timestamp.HasValue);
+        CurrentUnitText = currentUntimed?.Text ?? (_timing.Units.Count == 0 ? "<no units>" : "<complete>");
+        CurrentUnitProgress = _timing.Units.Count == 0
+            ? "0 / 0"
+            : $"{Math.Min(_timing.TimedCount + 1, _timing.Units.Count)} / {_timing.Units.Count}";
+        TimingCounts = $"{_timing.TimedCount} timed / {_timing.UntimedCount} untimed";
+        CurrentAudioTimeDisplay = _audioTimeSource?.CurrentTime.ToString(@"hh\:mm\:ss\.fff") ?? "00:00:00.000";
+        PlayPauseButtonText = _audioTimeSource?.IsPlaying == true ? "Pause" : "Play";
+        UpdateTapTimingCommands();
+    }
+
+    private void UpdateTapTimingCommands()
+    {
+        var hasUnits = _timing.Units.Count > 0;
+        var hasAudioPath = !string.IsNullOrWhiteSpace(SourceMp3Path);
+        var isComplete = _timing.UntimedCount == 0 && hasUnits;
+
+        CanPlayPause = hasUnits && hasAudioPath;
+        CanStop = _audioTimeSource is not null;
+        CanTap = _audioTimeSource is not null && !isComplete;
+        CanUndo = _timing.TimedCount > 0;
+        CanResetTiming = _timing.Units.Count > 0;
+    }
+
     private void UpdateValidationMessage()
     {
         ValidationMessage = string.IsNullOrWhiteSpace(RawLyricsText)
@@ -264,6 +517,19 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         if (!SetProperty(ref field, value, propertyName))
         {
             return false;
+        }
+
+        if (propertyName == nameof(RawLyricsText))
+        {
+            _liveTapTimingController = null;
+            RefreshTimingSummary();
+        }
+
+        if (propertyName == nameof(SourceMp3Path))
+        {
+            DisposeAudioOnly();
+            _liveTapTimingController = null;
+            RefreshTimingSummary();
         }
 
         HasUnsavedChanges = true;
@@ -289,6 +555,24 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SourceMp3Path));
         OnPropertyChanged(nameof(RawLyricsText));
         OnPropertyChanged(nameof(WindowTitle));
+    }
+
+    private void DisposeTapTimingRuntime()
+    {
+        _liveTapTimingController = null;
+        DisposeAudioOnly();
+        RefreshTimingSummary();
+    }
+
+    private void DisposeAudioOnly()
+    {
+        if (_audioTimeSource is IDisposable disposable)
+        {
+            disposable.Dispose();
+        }
+
+        _audioTimeSource = null;
+        _loadedAudioSourcePath = null;
     }
 
     private static TimingDocument CreateBlankTiming() =>

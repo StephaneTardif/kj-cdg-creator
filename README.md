@@ -70,6 +70,7 @@ Implemented so far:
 20. ✔ Intro/title screen support
 21. ✔ Project save/load
 22. ✔ Basic Avalonia project editor
+23. ✔ Avalonia live tap timing
 
 Still intentionally deferred:
 

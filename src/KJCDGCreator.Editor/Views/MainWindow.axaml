@@ -3,7 +3,7 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="{Binding WindowTitle}"
-    Width="1080"
+    Width="1360"
     Height="720">
   <Window.Styles>
     <Style Selector="Button.action-button">
@@ -115,7 +115,7 @@
       </DockPanel>
     </Border>
 
-    <Grid Grid.Row="1" RowDefinitions="Auto,*,Auto" ColumnDefinitions="320,*" Margin="0,18,0,18">
+    <Grid Grid.Row="1" RowDefinitions="Auto,*,Auto" ColumnDefinitions="320,*,360" Margin="0,18,0,18">
       <Border Padding="16" Background="#E7E0D2" CornerRadius="14">
         <StackPanel Spacing="12">
           <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#201A14" Text="Project Details" />
@@ -189,6 +189,29 @@
             <StackPanel Spacing="4">
               <TextBlock Foreground="#F5E7C7" Text="Editing Notes" />
               <TextBlock Foreground="#D8D4CC" Text="This first editor focuses on project creation, open/save, and raw lyrics authoring. Timing, preview, and export screens will be added later." TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+        </Grid>
+      </Border>
+
+      <Border Grid.Column="2" Margin="18,0,0,0" Padding="16" Background="#11191E" CornerRadius="14">
+        <Grid RowDefinitions="Auto,*,Auto">
+          <StackPanel Spacing="6">
+            <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#F5E7C7" Text="Karaoke Preview" />
+            <TextBlock Foreground="#D8D4CC" Text="Live frame output from the current project state." />
+          </StackPanel>
+
+          <Border Grid.Row="1" Margin="0,12,0,12" Padding="12" Background="#060A0C" BorderBrush="#22333D" BorderThickness="1" CornerRadius="10">
+            <Grid RowDefinitions="*,Auto">
+              <Image Source="{Binding PreviewImage}" Stretch="Uniform" />
+              <TextBlock Grid.Row="1" Margin="0,12,0,0" Foreground="#D8D4CC" Text="{Binding PreviewStatusMessage}" TextWrapping="Wrap" />
+            </Grid>
+          </Border>
+
+          <Border Grid.Row="2" Padding="12" Background="#17303A" CornerRadius="10">
+            <StackPanel Spacing="4">
+              <TextBlock Foreground="#F5E7C7" Text="Preview Notes" />
+              <TextBlock Foreground="#D8D4CC" Text="The preview refreshes while playback runs and after timing changes, save/load, and project resets." TextWrapping="Wrap" />
             </StackPanel>
           </Border>
         </Grid>

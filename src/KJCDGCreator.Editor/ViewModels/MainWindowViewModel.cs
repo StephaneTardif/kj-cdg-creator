@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Avalonia.Media;
 using KJCDGCreator.Audio.Timing;
 using KJCDGCreator.Core.Projects;
 using KJCDGCreator.Core.Rendering;
@@ -13,6 +14,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
     private const string DefaultWindowTitle = "KJ CDG Creator";
 
     private readonly IAudioTimeSourceFactory _audioTimeSourceFactory;
+    private readonly IKaraokePreviewRenderer _karaokePreviewRenderer;
     private string _title = string.Empty;
     private string _artist = string.Empty;
     private string _sourceMp3Path = string.Empty;
@@ -38,15 +40,23 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
     private bool _canTap;
     private bool _canUndo;
     private bool _canResetTiming;
+    private IImage? _previewImage;
+    private string _previewStatusMessage = "Preview unavailable. Add lyrics to render a frame.";
 
     public MainWindowViewModel()
-        : this(new Mp3AudioTimeSourceFactory())
+        : this(new Mp3AudioTimeSourceFactory(), new KaraokePreviewRenderer())
     {
     }
 
     public MainWindowViewModel(IAudioTimeSourceFactory audioTimeSourceFactory)
+        : this(audioTimeSourceFactory, new KaraokePreviewRenderer())
+    {
+    }
+
+    public MainWindowViewModel(IAudioTimeSourceFactory audioTimeSourceFactory, IKaraokePreviewRenderer karaokePreviewRenderer)
     {
         _audioTimeSourceFactory = audioTimeSourceFactory ?? throw new ArgumentNullException(nameof(audioTimeSourceFactory));
+        _karaokePreviewRenderer = karaokePreviewRenderer ?? throw new ArgumentNullException(nameof(karaokePreviewRenderer));
         RefreshTimingSummary();
     }
 
@@ -193,6 +203,18 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
         private set => SetProperty(ref _canResetTiming, value);
     }
 
+    public IImage? PreviewImage
+    {
+        get => _previewImage;
+        private set => SetProperty(ref _previewImage, value);
+    }
+
+    public string PreviewStatusMessage
+    {
+        get => _previewStatusMessage;
+        private set => SetProperty(ref _previewStatusMessage, value);
+    }
+
     public void NewProject()
     {
         DisposeTapTimingRuntime();
@@ -316,11 +338,14 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
         }
 
         UpdateTapTimingCommands();
+        RefreshPreview();
     }
 
     public KaraokeProject BuildProjectForSave(string? targetPath = null)
     {
-        var synchronizedTiming = SynchronizeTimingWithLyrics(_timing, RawLyricsText);
+        var synchronizedTiming = _liveTapTimingController is null
+            ? SynchronizeTimingWithLyrics(_timing, RawLyricsText)
+            : _timing;
         _timing = synchronizedTiming;
 
         return new KaraokeProject(
@@ -477,6 +502,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
         {
             HasUnsavedChanges = true;
         }
+
+        RefreshPreview();
     }
 
     private void RefreshTimingSummary()
@@ -490,6 +517,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
         CurrentAudioTimeDisplay = _audioTimeSource?.CurrentTime.ToString(@"hh\:mm\:ss\.fff") ?? "00:00:00.000";
         PlayPauseButtonText = _audioTimeSource?.IsPlaying == true ? "Pause" : "Play";
         UpdateTapTimingCommands();
+        RefreshPreview();
     }
 
     private void UpdateTapTimingCommands()
@@ -577,6 +605,38 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
 
     private static TimingDocument CreateBlankTiming() =>
         new(Array.Empty<TimedUnit>());
+
+    private void RefreshPreview()
+    {
+        var project = BuildProjectSnapshotForPreview();
+        var playbackTime = _audioTimeSource?.CurrentTime ?? TimeSpan.Zero;
+        var preview = _karaokePreviewRenderer.Render(project, playbackTime);
+        PreviewImage = preview.Image;
+        PreviewStatusMessage = preview.StatusMessage;
+    }
+
+    private KaraokeProject? BuildProjectSnapshotForPreview()
+    {
+        if (string.IsNullOrWhiteSpace(RawLyricsText))
+        {
+            return null;
+        }
+
+        var previewTiming = _liveTapTimingController is null
+            ? SynchronizeTimingWithLyrics(_timing, RawLyricsText)
+            : _timing;
+
+        return new KaraokeProject(
+            ProjectVersion: KaraokeProjectSerializer.CurrentProjectVersion,
+            Title: string.IsNullOrWhiteSpace(Title) ? null : Title,
+            Artist: string.IsNullOrWhiteSpace(Artist) ? null : Artist,
+            RawLyricsText: RawLyricsText,
+            Timing: previewTiming,
+            SourceMp3Path: string.IsNullOrWhiteSpace(SourceMp3Path) ? null : SourceMp3Path,
+            IntroOptions: _introOptions,
+            FrameRenderOptions: BuildFrameOptions(),
+            ExportOptions: BuildExportOptions());
+    }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

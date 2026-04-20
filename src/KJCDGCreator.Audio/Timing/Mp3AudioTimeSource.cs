@@ -6,6 +6,10 @@ namespace KJCDGCreator.Audio.Timing;
 
 public sealed class Mp3AudioTimeSource : IAudioPlaybackClock, IDisposable
 {
+    private static readonly object ActiveSourcesLock = new();
+    private static readonly HashSet<Mp3AudioTimeSource> ActiveSources = new();
+    private static bool _exitHandlersRegistered;
+
     private readonly string _mp3Path;
     private readonly TimeSpan? _duration;
     private readonly Stopwatch _stopwatch = new();
@@ -24,6 +28,7 @@ public sealed class Mp3AudioTimeSource : IAudioPlaybackClock, IDisposable
 
         _mp3Path = mp3Path;
         _duration = TryReadDuration(mp3Path);
+        RegisterExitHandlers();
     }
 
     public AudioPlaybackState State { get; private set; } = AudioPlaybackState.Stopped;
@@ -101,6 +106,7 @@ public sealed class Mp3AudioTimeSource : IAudioPlaybackClock, IDisposable
     {
         StopPlaybackProcess();
         _stopwatch.Stop();
+        UnregisterActiveSource(this);
     }
 
     private void StartPlaybackProcess()
@@ -124,6 +130,7 @@ public sealed class Mp3AudioTimeSource : IAudioPlaybackClock, IDisposable
         {
             _playbackProcess = Process.Start(startInfo)
                 ?? throw new InvalidOperationException("Failed to start MP3 playback process.");
+            RegisterActiveSource(this);
         }
         catch (Exception exception) when (exception is Win32Exception or InvalidOperationException)
         {
@@ -151,6 +158,7 @@ public sealed class Mp3AudioTimeSource : IAudioPlaybackClock, IDisposable
             _stopwatch.Reset();
             _playbackProcess.Dispose();
             _playbackProcess = null;
+            UnregisterActiveSource(this);
             State = AudioPlaybackState.Stopped;
         }
     }
@@ -178,6 +186,63 @@ public sealed class Mp3AudioTimeSource : IAudioPlaybackClock, IDisposable
         {
             _playbackProcess.Dispose();
             _playbackProcess = null;
+            UnregisterActiveSource(this);
+        }
+    }
+
+    private static void RegisterExitHandlers()
+    {
+        lock (ActiveSourcesLock)
+        {
+            if (_exitHandlersRegistered)
+            {
+                return;
+            }
+
+            AppDomain.CurrentDomain.ProcessExit += (_, _) => StopAllActivePlayback();
+            AppDomain.CurrentDomain.UnhandledException += (_, _) => StopAllActivePlayback();
+
+            try
+            {
+                Console.CancelKeyPress += (_, _) => StopAllActivePlayback();
+            }
+            catch
+            {
+                // Some UI hosts may not expose a console. ProcessExit still covers normal shutdown.
+            }
+
+            _exitHandlersRegistered = true;
+        }
+    }
+
+    private static void RegisterActiveSource(Mp3AudioTimeSource source)
+    {
+        lock (ActiveSourcesLock)
+        {
+            ActiveSources.Add(source);
+        }
+    }
+
+    private static void UnregisterActiveSource(Mp3AudioTimeSource source)
+    {
+        lock (ActiveSourcesLock)
+        {
+            ActiveSources.Remove(source);
+        }
+    }
+
+    private static void StopAllActivePlayback()
+    {
+        Mp3AudioTimeSource[] sources;
+
+        lock (ActiveSourcesLock)
+        {
+            sources = ActiveSources.ToArray();
+        }
+
+        foreach (var source in sources)
+        {
+            source.StopPlaybackProcess();
         }
     }
 

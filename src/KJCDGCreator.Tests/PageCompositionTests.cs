@@ -49,6 +49,31 @@ public sealed class PageCompositionTests
     }
 
     [Fact]
+    public void SelectsNextPage_WhenPreviousPageIsFullyTimedAndReached()
+    {
+        var (lyrics, timing) = CreateLyricsAndTiming("First page\n\nSecond page");
+        timing.AssignTimestamp(0, TimeSpan.FromSeconds(1));
+        timing.AssignTimestamp(1, TimeSpan.FromSeconds(2));
+
+        var selection = ActivePageSelector.SelectPage(lyrics, timing, TimeSpan.FromSeconds(2));
+
+        Assert.True(selection.HasActivePage);
+        Assert.Equal(1, selection.PageIndex);
+    }
+
+    [Fact]
+    public void DoesNotSelectNextPage_WhenPreviousPageIsOnlyPartiallyTimed()
+    {
+        var (lyrics, timing) = CreateLyricsAndTiming("First page\n\nSecond page");
+        timing.AssignTimestamp(0, TimeSpan.FromSeconds(1));
+
+        var selection = ActivePageSelector.SelectPage(lyrics, timing, TimeSpan.FromSeconds(10));
+
+        Assert.True(selection.HasActivePage);
+        Assert.Equal(0, selection.PageIndex);
+    }
+
+    [Fact]
     public void LeftAlignedLayout_PositionsLinesCorrectly()
     {
         var lyrics = LyricsParser.Parse("Line one\nLine two");

@@ -30,6 +30,12 @@ Be|cause I'm hap|py
 Clap a|long
 ```
 
+## Live Tap Timing Behavior
+
+- The current lyric page advances after its final timing unit has been tapped.
+- This lets the next page appear immediately in the editor preview before tapping the first word on that next page.
+- Partially timed pages do not advance early.
+
 ## Solution layout
 
 ```text
@@ -71,6 +77,7 @@ Implemented so far:
 21. ✔ Project save/load
 22. ✔ Basic Avalonia project editor
 23. ✔ Avalonia live tap timing
+24. ✔ Automatic page handoff after final timed unit
 
 Still intentionally deferred:
 
